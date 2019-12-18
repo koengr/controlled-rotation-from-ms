@@ -7,3 +7,13 @@ To obtain the L+1 rotation angles that sandwich the MS pulses, use
 angles = crot_angles( n_qubits, alpha )
 ```
 
+# Installation
+This code needs no installation. Simply move the file 'CompositeCRotGate.py' into your favorite folder, and from the same folder, start your Python 3 code with ``` from CompositeCRotGate import *```
+
+
+Dependencies do need to be installed:
+```
+pip3 install qspd
+pip3 install numpy
+pip3 install sympy==1.4
+```
