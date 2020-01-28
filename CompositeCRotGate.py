@@ -2,7 +2,7 @@
 Koen Groenland, December 2019
 
 This code is intended to aid the implementation of controlled-rotation gates using sequences 
-of MS gates, as explained in our paper [link coming soon]. In particular, use
+of MS gates, as explained in our paper [https://arxiv.org/abs/2001.05231]. In particular, use
 
     crot_angles( number_of_qubits,  rotation_angle_alpha )
     
@@ -48,54 +48,54 @@ def crot_angles( n_qubits, alpha, return_mpmath = False ):
     big_a = InputFunction( a_laurent, Parity.EVEN )
     big_b = InputFunction( b_laurent, Parity.ODD )
     
-    # Step 3: retrieve the corresponding sequence of angles
-    angles = qspd.qspd( big_a, big_b, return_matrices = False )
+    # Step 3: retrieve the corresponding sequence of angles phi_j
+    phis = qspd.qspd( big_a, big_b, return_matrices = False )
     
-    # Step 4: if needed, cast the angles to numpy.
+    # Step 4: if needed, cast the angles phi_j to numpy.
     if not return_mpmath : 
-        angles = mpmath_dict_to_numpy( angles )
+        phis = mpmath_dict_to_numpy( phis )
 
-    return( angles )
+    return( phis )
 
 
 def crot_laurent_series( n_qubits, alpha ):
-    """ Find the laurent series for A(phi) and B(phi) that implements 
-        (Identity if phi != pi) and (Rz(alpha) if phi == pi).
+    """ Find the laurent series for A(theta) and B(theta) that implements 
+        (Identity if theta != pi) and (Rz(alpha) if theta == pi).
         
-        This implementation sets B(phi) = 0 and solves the coefficients of A(phi). 
-        The function A is EVEN (i.e. is a cosine series), the function B is 0 and thus both EVEN and ODD. 
+        This implementation sets B(theta) = 0 and solves the coefficients of A(theta). 
+        The function A is EVEN (i.e. is a cosine series), the function B is 0 and thus qualifies as ODD. 
 
-        :param n_qubits: (integer) the total number of qubits in the multiqubit gate, 
-                            i.e. the number of values phi.
-        :param alpha: (float) the rotation angle in Rz(alpha) = exp( i Z alpha / 2 )
+        :param n_qubits:    (integer) the total number of qubits in the multiqubit gate, 
+                            i.e. the number of values theta.
+        :param alpha:       (float) the rotation angle in Rz(alpha) = exp( -i Z alpha / 2 )
                 
-        :return: (list of floats) the coefficients of the *cosine series*, such that 
-                A(phi) = sum_{k}  a_list[k] cos(k phi)
-                It is implicitly assumed that 
+        :return:            (list of floats) the coefficients of the *cosine series*, such that 
+                            A(theta) = sum_{k}  a_list[k] * cos(k theta)
+
     """
     
     
-    # Define the relevant angles phi, and the subsets needed to fix L(phi) and its derivatives. 
+    # Define the relevant angles theta, and the subsets needed to fix F^{phi}(theta) and its derivatives. 
     # By periodicity, it doesn't matter where the series start: we choose the special point -pi for simplicity.
-    fis = np.arange( -1 * np.pi, np.pi, 2*np.pi / n_qubits ) 
-    fis_fitting = fis[0:n_qubits//2+1]
-    fis_deriv = fis[1:(n_qubits+1)//2]
+    thetas = np.arange( -1 * np.pi, np.pi, 2*np.pi / n_qubits ) 
+    thetas_fitting = thetas[0:n_qubits//2+1]
+    thetas_deriv = thetas[1:(n_qubits+1)//2]
     
     # The degree of the resultant series depends on the number of free parameters (degrees of freedom DOF)
-    num_dof = len(fis_fitting) + len(fis_deriv)  #big_n = num_dof - 1
+    num_dof = len(thetas_fitting) + len(thetas_deriv)  #big_n = num_dof - 1
     ks = np.arange(0,num_dof)
     
-    # Define the function G(phi)
-    big_g = [1]*n_qubits  # choose the value at pi (index nqubits//2) to be the special point. 
-    big_g[0] = np.cos(alpha/2)
+    # Define the function G(theta), which is the 'goal' function
+    big_g = [1]*n_qubits  
+    big_g[0] = np.cos(alpha/2) # choose the value at -pi (index 0) to be the special point. 
    
     # The relevant entries (throwing away entries that are unnecessary due to symmetries)
-    big_g_fitting = big_g[0:len(fis_fitting)]
-    big_g_deriv = [0]*len(fis_deriv)
+    big_g_fitting = big_g[0:len(thetas_fitting)]
+    big_g_deriv = [0]*len(thetas_deriv)
 
     # Make matrix/vector combination that encodes the linear system we're solving.
-    fitting_matrix_a = [[ np.cos( k * fi ) for k in ks ] for fi in fis_fitting ]
-    deriv_matrix_a = [[ np.sin( k * fi ) * -1 * k for k in ks] for fi in fis_deriv ]
+    fitting_matrix_a = [[ np.cos( k * theta ) for k in ks ] for theta in thetas_fitting ]
+    deriv_matrix_a = [[ np.sin( k * theta ) * -1 * k for k in ks] for theta in thetas_deriv ]
 
     matrix_a = fitting_matrix_a + deriv_matrix_a
     vector_a = np.real( big_g_fitting + big_g_deriv )
@@ -124,10 +124,6 @@ def mpmath_dict_to_numpy( mpmath_dict, cast_method = np.float ):
     return np_dict
 
 
-# Given an mpmath matrix object, cast this to a numpy object. 
-# Thanks to the .tolist() functionality, no mpmath functions have to be imported. 
-def mpmath_matrix_to_numpy( mat ) :
-    return np.matrix( mat.tolist() , dtype = complex )
 
 
 # Check if a numpy matrix is unitary, up to tolerance. 
@@ -152,19 +148,19 @@ def cos_series_to_laurent( series_dict ):
             laurent[-k] = coeff / 2.
     return laurent
 
-''' evaluate the Laurent polynomial (at the point fi) that corresponds to the dictionary 'laurent'. '''
-def evaluate_laurent_dict( laurent, fi ): 
-    return sum( [ coeff * np.exp( 1j * k * fi ) for k, coeff in laurent.items() ])
+''' evaluate the Laurent polynomial (at the point theta) that corresponds to the dictionary 'laurent'. '''
+def evaluate_laurent_dict( laurent, theta ): 
+    return sum( [ coeff * np.exp( 1j * k * theta ) for k, coeff in laurent.items() ])
     
     
     
     
 
-def evaluate_angle_sequence( angle_dict, theta ):
-    ''' Given a list of angles (as dictionary), evaluate the corresponding composte gate at angle theta. 
+def evaluate_angle_sequence( phi_dict, theta ):
+    ''' Given a list of angles phi_j (as dictionary), evaluate the corresponding composte gate at angle theta. 
     
-        :param angle_dict:  dictionary of angles, as received from the function 'crot_angles'. 
-        :param theta:       (float) rotation angle, the argument of the composite gate L(theta)
+        :param phi_dict:  dictionary of angles, as received from the function 'crot_angles'. 
+        :param theta:       (float) rotation angle, the argument of the composite gate F^{phi}(theta)
         
         :return:            approximately unitary matrix that represents the composite gate. 
         
@@ -172,12 +168,12 @@ def evaluate_angle_sequence( angle_dict, theta ):
     
     # The implementation first builds a list of all the 2x2 unitaries, 
     # and then multiplies them using np.linalg.multi_dot( ). 
-    list_of_unitaries = [ rotz( angle_dict[0]  ) ] 
+    list_of_unitaries = [ rotz( phi_dict[0]  ) ] 
     x_rotation = rotx( theta )
-    for j in range(1,len(angle_dict)):
-        list_of_unitaries.append( rotz( angle_dict[j]  ) )
+    for j in range(1,len(phi_dict)):
+        list_of_unitaries.append( rotz( phi_dict[j]  ) )
         list_of_unitaries.append( x_rotation )
-        list_of_unitaries.append( rotz( -1 * angle_dict[j]  ) )
+        list_of_unitaries.append( rotz( -1 * phi_dict[j]  ) )
         
     return np.linalg.multi_dot( list_of_unitaries )
 
