@@ -3,7 +3,7 @@
 This code complements the paper "Signal processing techniques for efficient compilation of controlled rotations in trapped ions
 " (published as [Groenland et al. (2020) New J. Phys. *22* 063006](https://doi.org/10.1088/1367-2630/ab8830) and [on ArXiv](https://arxiv.org/abs/2001.05231)). 
 
-The main command finds a '''dict''' that states the required *rotation angles* to perform a controlled rotation gate (with ```n_qubits``` qubits and rotation angle ```angle```), as definted in the paper. Using these angles, one can construct the corresponding circuit that uses L=2N applications of the Molmer-Sorensen (MS) gate.
+The main command lists the required *rotation angles* to perform a controlled rotation gate (with ```n_qubits``` qubits and rotation angle ```angle```), as definted in the paper. They are returned in the form of a [Dictionary](https://www.w3schools.com/python/python_dictionaries.asp). Using these angles, one can construct the corresponding circuit that uses L=2N applications of the Molmer-Sorensen (MS) gate.
 
 To obtain the L+1 rotation angles that sandwich the MS pulses, use
 ```python
